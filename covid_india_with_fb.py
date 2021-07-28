@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from utils import *
 from sklearn.preprocessing import MinMaxScaler
-from ML_model import fit_model, make_forecasts, eval_forecasts
+from ML_model import *
 from plot import plot_state_prediction
 import sys
 
@@ -22,8 +22,9 @@ def process_data(state):
         sys.exit()
     return X.values, states_list
 
-in_win = 5
-out_win = 4
+in_win = 6
+out_win = 1
+fb_win = 4
 batch_size = 1
 n_epochs = 1000
 state = 'all'
@@ -32,19 +33,19 @@ raw_data = np.transpose(raw_data)
 scaler = MinMaxScaler(feature_range=(-1, 1))
 scaled_values = scaler.fit_transform(raw_data)
 
-X_tr, Y_tr, X_t, Y_t = convert_to_supervised(scaled_values, in_win, out_win, 0.4)
+X_tr, Y_tr, X_t, Y_t, Y_tr_fb, Y_t_fb = convert_to_supervised_with_fb(scaled_values, in_win, out_win, fb_win, 0.4)
 
 model = fit_model(X_tr, Y_tr, in_win, out_win, n_epochs, batch_size, True, 'ED')
 
 # test prediction
-test_prediction = make_forecasts(model, batch_size, X_t, in_win, out_win)
-rmse, mape, mae = eval_forecasts(Y_t, test_prediction, in_win, out_win)
+test_prediction = make_forecasts_with_fb(model, batch_size, X_t, in_win, fb_win)
+rmse, mape, mae = eval_forecasts_with_fb(Y_t_fb, test_prediction, in_win, fb_win)
 print(f"TESTING : rmse:{rmse}, mape:{mape}, mae:{mae}")
    
 
 # train prediction
-train_prediction = make_forecasts(model, batch_size, X_tr, in_win, out_win)
-rmse, mape, mae = eval_forecasts(Y_tr, train_prediction, in_win, out_win)
+train_prediction = make_forecasts_with_fb(model, batch_size, X_tr, in_win, fb_win)
+rmse, mape, mae = eval_forecasts_with_fb(Y_tr_fb, train_prediction, in_win, fb_win)
 print(f"TRAINING : rmse:{rmse}, mape:{mape}, mae:{mae}")
 
 print(train_prediction.shape)
@@ -52,6 +53,8 @@ print(test_prediction.shape)
 print(Y_tr.shape)
 print(Y_t.shape)
     
+
+"""
 # rescale
 
 # test prediction
@@ -73,3 +76,4 @@ print(f"TRAINING after rescaling: rmse:{rmse}, mape:{mape}, mae:{mae}")
 
 plot_state_prediction(states_list, train_prediction, Y_tr, 'Training')
 plot_state_prediction(states_list, test_prediction, Y_t, 'Testing')
+"""

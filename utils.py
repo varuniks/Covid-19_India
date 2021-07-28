@@ -105,3 +105,35 @@ def convert_to_supervised(data, in_win, out_win, split=0.4):
 
     return X_train, Y_train, X_test, Y_test
 
+def convert_to_supervised_with_fb(data, in_win, out_win, fb_win, split=0.4):
+    #print(data.shape)
+    num_regions = data.shape[1]
+    #t_size = data.shape[0] - in_win - out_win + 1
+    t_size = data.shape[0] - in_win - fb_win + 1
+    in_seq = np.zeros(shape=(t_size,in_win,num_regions))
+    out_seq = np.zeros(shape=(t_size,out_win,num_regions))
+    fb_out_seq = np.zeros(shape=(t_size,fb_win,num_regions))
+    for t in range(t_size):
+        in_seq[t,:,:] = data[None,t:t+in_win,:]
+        out_seq[t,:,:] = data[None,t+in_win:t+in_win+out_win,:]
+        fb_out_seq[t,:,:] = data[None,t+in_win:t+in_win+fb_win,:]
+    # if we are going to shuffle
+    idx = np.arange(t_size)
+    np.random.shuffle(idx)
+
+    in_seq = in_seq[idx,:,:]
+    out_seq = out_seq[idx,:,:]
+    fb_out_seq = fb_out_seq[idx,:,:]
+
+    test_split = int(np.floor(t_size * split))
+    
+    X_train =  in_seq[0:-test_split,:,:]
+    Y_train =  out_seq[0:-test_split,:,:]
+    Y_train_fb =  fb_out_seq[0:-test_split,:,:]
+
+    X_test = in_seq[-test_split:,:,:]
+    Y_test = out_seq[-test_split:,:,:]
+    Y_test_fb = fb_out_seq[-test_split:,:,:]
+
+    return X_train, Y_train, X_test, Y_test, Y_train_fb, Y_test_fb
+

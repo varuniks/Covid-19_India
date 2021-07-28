@@ -49,12 +49,14 @@ def make_forecasts(model, n_batch, data, in_win, out_win):
     return forecasts
 
     
-def make_forecasts_with_fb(model, n_batch, data, in_win, out_win):
-    #print(data.shape) # None, in_win, n_counties
-    forecasts = np.zeros(shape=(len(data), 4, data.shape[2]))
+def make_forecasts_with_fb(model, n_batch, data, in_win, fb_win):
+    print(data.shape) # None, in_win, n_counties
+    forecasts = np.zeros(shape=(len(data), fb_win, data.shape[2]))
+    #print(forecasts.shape)
+    #print(var)
     for i in range(len(data)):
         X = np.copy(data[i, :, :]) # in_win, n_counties
-        for j in range(4):
+        for j in range(fb_win):
             # make forecast
             forecast = forecast_model(model, X, n_batch)
             forecasts[i,j,:] = forecast
@@ -65,9 +67,33 @@ def make_forecasts_with_fb(model, n_batch, data, in_win, out_win):
             #print(var)
     return forecasts
 
+def get_subwindow(data, win_size):
+    return data[np.expand_dims(np.arange(win_size), 0) + np.expand_dims(np.arange(len(data)-win_size + 1), 0).T]
+
 def eval_forecasts(true, pred, in_win, out_win):
-    #print(f"true data: {true}")
-    #print(f"pred data: {pred}")
+    rmse_out = np.zeros(shape=(out_win))
+    mape_out = np.zeros(shape=(out_win))
+    mae_out = np.zeros(shape=(out_win))
+    for i in range(out_win):
+        actual = true[:,i,:] 
+        forecast = pred[:,i,:]
+        
+        RMSE = np.sqrt(mean_squared_error(actual, forecast))
+        MAPE = np.mean((abs(actual - forecast) / (abs(actual)+1)))
+        MAE = np.mean(abs(actual - forecast))
+        
+        #print('t+%d RMSE: %f' % ((i+1), RMSE))    
+        #print('t+%d MAPE: %f' % ((i+1), MAPE))    
+        #print('t+%d MAE: %f' % ((i+1), MAE))    
+       
+        mape_out[i] = MAPE
+        mae_out[i] = MAE
+        rmse_out[i] = RMSE
+    return rmse_out, mape_out, mae_out
+
+def eval_forecasts_with_fb(true, pred, in_win, out_win):
+    print(f"true data: {true.shape}")
+    print(f"pred data: {pred.shape}")
     rmse_out = np.zeros(shape=(out_win))
     mape_out = np.zeros(shape=(out_win))
     mae_out = np.zeros(shape=(out_win))
